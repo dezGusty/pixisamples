@@ -1,0 +1,10 @@
+div#stats {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 500;
+  width: max(120px, 8vw, 8vh);
+  height: max(32px, 2vh, 2vw);
+  opacity: 0.8;
+  user-select: none;
+}
