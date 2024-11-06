@@ -47,6 +47,14 @@ fpsText.x = 10;
 fpsText.y = 10;
 app.stage.addChild(fpsText);
 
+const instructionsText = new Text({
+  text: 'Use the gamepad direction stick to move the logo. Press buttons 0, 1, 2, 3 to see messages',
+  style,
+});
+instructionsText.x = 280;
+instructionsText.y = 10;
+app.stage.addChild(instructionsText);
+
 const messagesText = new Text({
   text: '',
   style,
