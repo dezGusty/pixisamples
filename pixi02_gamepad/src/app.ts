@@ -1,4 +1,4 @@
-import { Application, Sprite, Assets, WebGLRenderer, Text, TextStyle } from 'pixi.js';
+import { Application, Sprite, Assets, WebGLRenderer, Text, TextStyle, BitmapText } from 'pixi.js';
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
@@ -31,6 +31,18 @@ logo.anchor.y = 0.5;
 // Add the bunny to the scene we are building
 app.stage.addChild(logo);
 
+await Assets.load('./GustysSerpentsFontL.xml');
+
+const fpsText = new BitmapText({
+  text: 'FPS: 0',
+  style: {
+      fontFamily: 'GustysSerpents',
+      fontSize: 18,
+      align: 'left',
+  },
+});
+
+
 const style = new TextStyle({
   fontFamily: 'Arial',
   fontSize: 18,
@@ -38,10 +50,10 @@ const style = new TextStyle({
   stroke: { color: '#4a1850', width: 5, join: 'round' },
 });
 
-const fpsText = new Text({
-  text: 'FPS: 0',
-  style,
-});
+// const fpsText = new Text({
+//   text: 'FPS: 0',
+//   style,
+// });
 
 fpsText.x = 10;
 fpsText.y = 10;
