@@ -1,9 +1,11 @@
-import { Application, Sprite, Assets, WebGLRenderer, Text, TextStyle, BitmapText } from 'pixi.js';
+import { Application, Sprite, Assets, Text, TextStyle, BitmapText, Spritesheet } from 'pixi.js';
+import { GameMap } from './gamemap';
+import { KeyboardController } from './keyboard-controller';
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
 // and the root stage PIXI.Container
-const app = new Application<WebGLRenderer<HTMLCanvasElement>>();
+const app = new Application();
 
 
 // Wait for the Renderer to be available
@@ -18,7 +20,7 @@ document.body.appendChild(app.canvas);
 const texture = await Assets.load('SumWarsIcon_128x128.png');
 
 // This creates a texture from the image
-const logo = new Sprite(texture);
+let logo = new Sprite(texture);
 
 // Setup the position of the bunny
 logo.x = app.renderer.width / 2;
@@ -28,7 +30,30 @@ logo.y = app.renderer.height / 2;
 logo.anchor.x = 0.5;
 logo.anchor.y = 0.5;
 
-// Add the bunny to the scene we are building
+const sheet: Spritesheet = await Assets.load('terrainspritesheet.json');
+
+// Store a dictionary of indices (1-5) to texture names (E.g. terrain_01.png)
+const terrainTextureNames: string[] = [];
+// The texture names are taken from object key properties in sheet.textures
+for (let key in sheet.textures) {
+  terrainTextureNames.push(key);
+}
+
+const maxTerrainCount = terrainTextureNames.length;
+
+let gameMap: GameMap = new GameMap(40, 30);
+for (let i = 0; i < gameMap.width; i++) {
+  for (let j = 0; j < gameMap.height; j++) {
+    gameMap.tiles[i][j] = Math.floor(Math.random() * maxTerrainCount);
+    let gameSprite = new Sprite(sheet.textures[terrainTextureNames[gameMap.tiles[i][j]]]);
+
+    gameSprite.x = i * 32 + 50;
+    gameSprite.y = j * 32 + 50;
+
+    app.stage.addChild(gameSprite);
+  }
+}
+
 app.stage.addChild(logo);
 
 await Assets.load('./GustysSerpentsFontL.xml');
@@ -36,9 +61,18 @@ await Assets.load('./GustysSerpentsFontL.xml');
 const fpsText = new BitmapText({
   text: 'FPS: 0',
   style: {
-      fontFamily: 'GustysSerpents',
-      fontSize: 18,
-      align: 'left',
+    fontFamily: 'GustysSerpents',
+    fontSize: 18,
+    align: 'left',
+  },
+});
+
+const positionText = new BitmapText({
+  text: 'Position: 01234',
+  style: {
+    fontFamily: 'GustysSerpents',
+    fontSize: 18,
+    align: 'left',
   },
 });
 
@@ -50,14 +84,13 @@ const style = new TextStyle({
   stroke: { color: '#4a1850', width: 5, join: 'round' },
 });
 
-// const fpsText = new Text({
-//   text: 'FPS: 0',
-//   style,
-// });
-
 fpsText.x = 10;
 fpsText.y = 10;
 app.stage.addChild(fpsText);
+
+positionText.x = 10;
+positionText.y = 35;
+app.stage.addChild(positionText);
 
 const instructionsText = new Text({
   text: 'Use the gamepad direction stick to move the logo. Press buttons 0, 1, 2, 3 to see messages',
@@ -72,16 +105,51 @@ const messagesText = new Text({
   style,
 });
 messagesText.x = 10;
-messagesText.y = 40;
+messagesText.y = 60;
 app.stage.addChild(messagesText);
+
+const keyboardController = new KeyboardController();
+const speedMultiplier = 3.8;
 
 // Listen for frame updates
 app.ticker.add((ticker) => {
 
   fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
+  positionText.text = `Pos: ${logo.x}, ${logo.y}`;
 
-  // each frame we spin the bunny around a bit
+  // Validate logo bounds
+  if (logo.x < 50) {
+    logo.x = 50;
+  }
+  if (logo.x > 32 * 40 + 50) {
+    logo.x = 32 * 40 + 50;
+  }
+  if (logo.y < 50) {
+    logo.y = 50;
+  }
+  if (logo.y > 32 * 30 + 50) {
+    logo.y = 32 * 30 + 50;
+  }
+
+  // each frame we spin the logo around a bit
   logo.rotation += 0.01 * ticker.deltaTime;
+
+  if (keyboardController.keys.up.pressed) {
+    messagesText.text = "Up pressed";
+    logo.y -= 1.8 * ticker.deltaTime * speedMultiplier;
+  }
+  if (keyboardController.keys.down.pressed) {
+    messagesText.text = "Down pressed";
+    logo.y += 1.8 * ticker.deltaTime * speedMultiplier;
+  }
+  if (keyboardController.keys.left.pressed) {
+    messagesText.text = "Left pressed";
+    logo.x -= 1.8 * ticker.deltaTime * speedMultiplier;
+  }
+  if (keyboardController.keys.right.pressed) {
+    messagesText.text = "Right pressed";
+    logo.x += 1.8 * ticker.deltaTime * speedMultiplier;
+  }
 
   const gamepads = navigator.getGamepads();
   if (gamepads) {
@@ -102,24 +170,26 @@ app.ticker.add((ticker) => {
 
       if (gp.axes[0] > 0.5) {
         messagesText.text = "Right pressed";
-        logo.x += 1.8 * ticker.deltaTime;
+        logo.x += 1.8 * ticker.deltaTime * speedMultiplier;
       }
       if (gp.axes[0] < -0.5) {
         messagesText.text = "Left pressed";
-        logo.x -= 1.8 * ticker.deltaTime;
+        logo.x -= 1.8 * ticker.deltaTime * speedMultiplier;
       }
       if (gp.axes[1] > 0.5) {
         messagesText.text = "Down pressed";
-        logo.y += 1.8 * ticker.deltaTime;
+        logo.y += 1.8 * ticker.deltaTime * speedMultiplier;
       }
       if (gp.axes[1] < -0.5) {
         messagesText.text = "Up pressed";
-        logo.y -= 1.8 * ticker.deltaTime;
+        logo.y -= 1.8 * ticker.deltaTime * speedMultiplier;
       }
     }
 
     return;
   }
+
+
 
 });
 
