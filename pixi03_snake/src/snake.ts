@@ -28,6 +28,13 @@ export enum SnakeDirection {
   none = 4
 }
 
+export function areDirectionsOpposites(dir1: SnakeDirection, dir2: SnakeDirection): boolean {
+  return (dir1 == SnakeDirection.up && dir2 == SnakeDirection.down) ||
+    (dir1 == SnakeDirection.down && dir2 == SnakeDirection.up) ||
+    (dir1 == SnakeDirection.left && dir2 == SnakeDirection.right) ||
+    (dir1 == SnakeDirection.right && dir2 == SnakeDirection.left);
+}
+
 export class SnakeBodyPart {
   x: number = 0;
   y: number = 0;

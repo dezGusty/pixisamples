@@ -3,6 +3,7 @@ import { GameMap } from './gamemap';
 import { KeyboardController } from './keyboard-controller';
 import { Snake, SnakeBodyPart, SnakeBodyPartType, SnakeDirection } from './snake';
 import { Game } from './game';
+import { GamepadController } from './gamepad-controller';
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
@@ -89,8 +90,9 @@ messagesText.y = 60;
 app.stage.addChild(messagesText);
 
 const keyboardController = new KeyboardController();
+const gamepadController = new GamepadController();
 
-let game: Game = new Game(gameMap, keyboardController, snakeSheet, snakeTextureNames);
+let game: Game = new Game(gameMap, keyboardController, gamepadController, snakeSheet, snakeTextureNames);
 game.start();
 
 const snakeSprites = game.snake.updateSprites();
@@ -106,8 +108,9 @@ app.ticker.add((ticker) => {
   // fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
   fpsText.text = `FPS: ${ticker.FPS.toFixed(2)}`;
 
-  game.update(ticker.deltaMS);
-  updateSnakeInStage(game.snake);
+  if (game.update(ticker.deltaMS)) {
+    updateSnakeInStage(game.snake);
+  }
 });
 
 window.addEventListener("gamepadconnected", (e) => {

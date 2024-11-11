@@ -1,20 +1,22 @@
 import { Spritesheet } from "pixi.js";
-import { Snake, SnakeBodyPart, SnakeBodyPartType, SnakeDirection } from "./snake";
+import { areDirectionsOpposites, Snake, SnakeBodyPart, SnakeBodyPartType, SnakeDirection } from "./snake";
 import { KeyboardController } from "./keyboard-controller";
 import { GameMap } from "./gamemap";
+import { GamepadController, GamepadInput4x } from "./gamepad-controller";
 
 export class Game {
 
   public snake: Snake;
 
   private gameDelta: number = 0;
-  private maxDelta = 250;
+  private maxDelta = 150;
 
   private solidBorders = false;
 
   constructor(
     private gameMap: GameMap,
     private keyboardController: KeyboardController,
+    private gamepadController: GamepadController,
     private snakeSheet: Spritesheet,
     private snakeTextureNames: string[]) {
     this.snake = new Snake(this.snakeSheet, this.snakeTextureNames);
@@ -23,6 +25,9 @@ export class Game {
   public start() {
     this.snake = new Snake(this.snakeSheet, this.snakeTextureNames);
     this.snake.alive = true;
+    this.snake.direction = SnakeDirection.up;
+    this.snake.cachedDirection = SnakeDirection.none;
+    this.snake.nextDirection = SnakeDirection.none;
 
     this.snake.body.push({ x: 10, y: 10, type: SnakeBodyPartType.head_up, direction: SnakeDirection.up } as SnakeBodyPart);
     this.snake.body.push({ x: 10, y: 11, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up } as SnakeBodyPart);
@@ -84,52 +89,56 @@ export class Game {
     }
 
     // Keyboard controller actions.
-    if (this.keyboardController.keys.up.pressed) {
-      if (this.snake.direction !== SnakeDirection.down) {
-        this.snake.direction = SnakeDirection.up;
+    if (this.keyboardController.keys.up.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisUp)) {
+      if (this.snake.cachedDirection !== SnakeDirection.none) {
+        if (this.snake.direction !== SnakeDirection.down && this.snake.direction !== SnakeDirection.up) {
+          this.snake.cachedDirection = SnakeDirection.up;
+        }
+      } else {
+        this.snake.nextDirection = SnakeDirection.up;
       }
     }
 
-    if (this.keyboardController.keys.down.pressed) {
-      if (this.snake.direction !== SnakeDirection.up) {
-        this.snake.direction = SnakeDirection.down;
+    if (this.keyboardController.keys.down.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisDown)) {
+      if (this.snake.cachedDirection !== SnakeDirection.none) {
+        if (this.snake.direction !== SnakeDirection.up && this.snake.direction !== SnakeDirection.down) {
+          this.snake.cachedDirection = SnakeDirection.down;
+        }
+      } else {
+        this.snake.nextDirection = SnakeDirection.down;
       }
     }
 
-    if (this.keyboardController.keys.left.pressed) {
-      if (this.snake.direction !== SnakeDirection.right) {
-        this.snake.direction = SnakeDirection.left;
+
+    if (this.keyboardController.keys.left.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisLeft)) {
+      if (this.snake.cachedDirection !== SnakeDirection.none) {
+        if (this.snake.direction !== SnakeDirection.right && this.snake.direction !== SnakeDirection.left) {
+          this.snake.cachedDirection = SnakeDirection.left;
+        }
+      } else {
+        this.snake.nextDirection = SnakeDirection.left;
       }
     }
 
-    if (this.keyboardController.keys.right.pressed) {
-      if (this.snake.direction !== SnakeDirection.left) {
-        this.snake.direction = SnakeDirection.right;
-      }
-    }
-
-    // Gamepad controller actions.
-    const gamepads = navigator.getGamepads();
-    if (gamepads) {
-      const gp = gamepads[0];
-      if (gp) {
-        if (gp.axes[0] > 0.5) {
-          this.snake.direction = SnakeDirection.right;
+    if (this.keyboardController.keys.right.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisRight)) {
+      if (this.snake.cachedDirection !== SnakeDirection.none) {
+        if (this.snake.direction !== SnakeDirection.left && this.snake.direction !== SnakeDirection.right) {
+          this.snake.cachedDirection = SnakeDirection.right;
         }
-        if (gp.axes[0] < -0.5) {
-          this.snake.direction = SnakeDirection.left;
-        }
-        if (gp.axes[1] > 0.5) {
-          this.snake.direction = SnakeDirection.down;
-        }
-        if (gp.axes[1] < -0.5) {
-          this.snake.direction = SnakeDirection.up;
-        }
+      } else {
+        this.snake.nextDirection = SnakeDirection.right;
       }
     }
 
     this.gameDelta += delta;
     if (this.gameDelta >= this.maxDelta) {
+      if (this.snake.cachedDirection !== SnakeDirection.none
+        && !areDirectionsOpposites(this.snake.direction, this.snake.cachedDirection)) {
+        this.snake.direction = this.snake.cachedDirection;
+      }
+      this.snake.cachedDirection = this.snake.nextDirection;
+      this.snake.nextDirection = SnakeDirection.none;
+
       this.gameDelta = 0;
       this.moveSnake();
       this.checkCollision();
