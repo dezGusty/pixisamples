@@ -30,6 +30,7 @@ export enum SnakeDirection {
 export class SnakeBodyPart {
   x: number = 0;
   y: number = 0;
+  direction: SnakeDirection = SnakeDirection.up;
   type: SnakeBodyPartType = SnakeBodyPartType.head_up;
   sprite: Maybe<Sprite> = Maybe.None<Sprite>();
   constructor(x: number, y: number, type: SnakeBodyPartType) {
@@ -50,11 +51,15 @@ export class Snake {
     console.log('Snake created');
   }
 
-  protected pullCommon() {
+  protected shiftSnakeBody() {
     for (let i = this.body.length - 1; i > 0; i--) {
       this.body[i].x = this.body[i - 1].x;
       this.body[i].y = this.body[i - 1].y;
+      this.body[i].type = this.body[i - 1].type;
+      this.body[i].direction = this.body[i - 1].direction;
     }
+
+    this.updateTailBodyPart();
   }
 
   public sprites(): Sprite[] {
@@ -79,25 +84,47 @@ export class Snake {
     return sprites;
   }
 
+  protected updateTailBodyPart() {
+    if (this.body.length <= 1) {
+      return;
+    }
+
+    let tail = this.body[this.body.length - 1];
+    let direction = this.body[this.body.length - 2].direction;
+    if (direction == SnakeDirection.up) {
+      tail.type = SnakeBodyPartType.tail_up;
+    } else if (direction == SnakeDirection.left) {
+      tail.type = SnakeBodyPartType.tail_left;
+    } else if (direction == SnakeDirection.down) {
+      tail.type = SnakeBodyPartType.tail_down;
+    } else {
+      tail.type = SnakeBodyPartType.tail_right;
+    }
+  }
+
   public pullUp() {
     if (this.body.length <= 0) {
       return;
     }
 
-    this.pullCommon();
-
-    if (this.body.length > 1) {
-      switch (this.body[1].type) {
-        case SnakeBodyPartType.body_straight_left:
-          this.body[0].type = SnakeBodyPartType.body_turn_up_right;
-          break;
-        case SnakeBodyPartType.body_straight_right:
-          this.body[0].type = SnakeBodyPartType.body_turn_up_left;
-          break;
-      }
+    if (this.body[0].direction == SnakeDirection.down) {
+      // disallowed
+      return;
     }
 
+    // Update the snake's future "neck" part based on the head's direction (old and new)
+    if (this.body[0].direction == SnakeDirection.left) {
+      this.body[0].type = SnakeBodyPartType.body_turn_up_right;
+    } else if (this.body[0].direction == SnakeDirection.right) {
+      this.body[0].type = SnakeBodyPartType.body_turn_up_left;
+    } else {
+      this.body[0].type = SnakeBodyPartType.body_straight_up;
+    }
+
+    this.shiftSnakeBody();
+
     this.body[0].type = SnakeBodyPartType.head_up;
+    this.body[0].direction = SnakeDirection.up;
     this.body[0].y -= 1;
   }
 
@@ -106,8 +133,24 @@ export class Snake {
       return;
     }
 
-    this.pullCommon();
+    if (this.body[0].direction == SnakeDirection.up) {
+      // disallowed
+      return;
+    }
+
+    // Update the snake's future "neck" part based on the head's direction (old and new)
+    if (this.body[0].direction == SnakeDirection.left) {
+      this.body[0].type = SnakeBodyPartType.body_turn_down_right;
+    } else if (this.body[0].direction == SnakeDirection.right) {
+      this.body[0].type = SnakeBodyPartType.body_turn_down_left;
+    } else {
+      this.body[0].type = SnakeBodyPartType.body_straight_down;
+    }
+
+    this.shiftSnakeBody();
+
     this.body[0].type = SnakeBodyPartType.head_down;
+    this.body[0].direction = SnakeDirection.down;
     this.body[0].y += 1;
   }
 
@@ -116,8 +159,23 @@ export class Snake {
       return;
     }
 
-    this.pullCommon();
+    if (this.body[0].direction == SnakeDirection.right) {
+      // disallowed
+      return;
+    }
+
+    if (this.body[0].direction == SnakeDirection.up) {
+      this.body[0].type = SnakeBodyPartType.body_turn_down_left;
+    } else if (this.body[0].direction == SnakeDirection.down) {
+      this.body[0].type = SnakeBodyPartType.body_turn_up_left;
+    } else {
+      this.body[0].type = SnakeBodyPartType.body_straight_left;
+    }
+
+    this.shiftSnakeBody();
+
     this.body[0].type = SnakeBodyPartType.head_left;
+    this.body[0].direction = SnakeDirection.left;
     this.body[0].x -= 1;
   }
 
@@ -126,11 +184,33 @@ export class Snake {
       return;
     }
 
-    this.pullCommon();
+    if (this.body[0].direction == SnakeDirection.left) {
+      // disallowed
+      return;
+    }
+
+    if (this.body[0].direction == SnakeDirection.up) {
+      this.body[0].type = SnakeBodyPartType.body_turn_down_right;
+    } else if (this.body[0].direction == SnakeDirection.down) {
+      this.body[0].type = SnakeBodyPartType.body_turn_up_right;
+    } else {
+      this.body[0].type = SnakeBodyPartType.body_straight_right;
+    }
+
+    this.shiftSnakeBody();
+
     this.body[0].type = SnakeBodyPartType.head_right;
+    this.body[0].direction = SnakeDirection.right;
     this.body[0].x += 1;
   }
 
+  protected logSnake() {
+    // Log the entire snake
+    // console.log('Snake:');
+    for (let i = 0; i < this.body.length; i++) {
+      console.log(`Part ${i}: x=${this.body[i].x}, y=${this.body[i].y}, type=${this.body[i].type}, direction=${this.body[i].direction}`);
+    }
+  }
 
 
 }

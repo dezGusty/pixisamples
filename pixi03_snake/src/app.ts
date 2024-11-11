@@ -1,7 +1,7 @@
 import { Application, Sprite, Assets, Text, TextStyle, BitmapText, Spritesheet } from 'pixi.js';
 import { GameMap } from './gamemap';
 import { KeyboardController } from './keyboard-controller';
-import { Snake, SnakeBodyPart, SnakeBodyPartType } from './snake';
+import { Snake, SnakeBodyPart, SnakeBodyPartType, SnakeDirection } from './snake';
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
@@ -120,18 +120,11 @@ const keyboardController = new KeyboardController();
 const speedMultiplier = 3.8;
 
 let snake: Snake = new Snake(snakeSheet, snakeTextureNames);
-snake.body.push({ x: 10, y: 10, type: SnakeBodyPartType.head_up } as SnakeBodyPart);
-snake.body.push({ x: 10, y: 11, type: SnakeBodyPartType.body_straight_up } as SnakeBodyPart);
-snake.body.push({ x: 10, y: 12, type: SnakeBodyPartType.body_straight_up } as SnakeBodyPart);
-snake.body.push({ x: 10, y: 13, type: SnakeBodyPartType.body_straight_up } as SnakeBodyPart);
-snake.body.push({ x: 10, y: 14, type: SnakeBodyPartType.tail_up } as SnakeBodyPart);
-
-// for (let i = 0; i < snake.body.length; i++) {
-//   let snakeSprite = new Sprite(snakeSheet.textures[snakeTextureNames[snake.body[i].type]]);
-//   snakeSprite.x = snake.body[i].x * 32 + 50;
-//   snakeSprite.y = snake.body[i].y * 32 + 50;
-//   app.stage.addChild(snakeSprite);
-// }
+snake.body.push({ x: 10, y: 10, type: SnakeBodyPartType.head_up, direction: SnakeDirection.up } as SnakeBodyPart);
+snake.body.push({ x: 10, y: 11, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up } as SnakeBodyPart);
+snake.body.push({ x: 10, y: 12, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up } as SnakeBodyPart);
+snake.body.push({ x: 10, y: 13, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up } as SnakeBodyPart);
+snake.body.push({ x: 10, y: 14, type: SnakeBodyPartType.tail_up, direction: SnakeDirection.up } as SnakeBodyPart);
 
 const snakeSprites = snake.updateSprites();
 for (let i = 0; i < snakeSprites.length; i++) {
@@ -212,18 +205,26 @@ app.ticker.add((ticker) => {
       if (gp.axes[0] > 0.5) {
         messagesText.text = "Right pressed";
         logo.x += 1.8 * ticker.deltaTime * speedMultiplier;
+        snake.pullRight();
+        updateSnakeInStage(snake);
       }
       if (gp.axes[0] < -0.5) {
         messagesText.text = "Left pressed";
         logo.x -= 1.8 * ticker.deltaTime * speedMultiplier;
+        snake.pullLeft();
+        updateSnakeInStage(snake);
       }
       if (gp.axes[1] > 0.5) {
         messagesText.text = "Down pressed";
         logo.y += 1.8 * ticker.deltaTime * speedMultiplier;
+        snake.pullDown();
+        updateSnakeInStage(snake);
       }
       if (gp.axes[1] < -0.5) {
         messagesText.text = "Up pressed";
         logo.y -= 1.8 * ticker.deltaTime * speedMultiplier;
+        snake.pullUp();
+        updateSnakeInStage(snake);
       }
     }
   }
