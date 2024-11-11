@@ -46,7 +46,7 @@ export class KeyboardController {
   }
 
   keydownHandler(event: KeyboardEvent) {
-    console.log("keydown: " + event.code);
+    // console.log("keydown: " + event.code);
 
     const key = this.keyMap[event.code];
     if (!key) return;
@@ -60,7 +60,7 @@ export class KeyboardController {
   }
 
   keyupHandler(event: KeyboardEvent) {
-    console.log("keyup: " + event.code);
+    // console.log("keyup: " + event.code);
     const key = this.keyMap[event.code];
     if (!key) return;
     // Toggle off the key pressed state.

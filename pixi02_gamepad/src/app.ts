@@ -71,7 +71,7 @@ const positionText = new BitmapText({
   text: 'Position: 01234',
   style: {
     fontFamily: 'GustysSerpents',
-    fontSize: 18,
+    fontSize: 24,
     align: 'left',
   },
 });
@@ -93,7 +93,7 @@ positionText.y = 35;
 app.stage.addChild(positionText);
 
 const instructionsText = new Text({
-  text: 'Use the gamepad direction stick to move the logo. Press buttons 0, 1, 2, 3 to see messages',
+  text: 'Use the gamepad direction stick (or keyb. WASD) to move the logo. Press gamepad buttons 0, 1, 2, 3 to see messages',
   style,
 });
 instructionsText.x = 280;
@@ -114,8 +114,9 @@ const speedMultiplier = 3.8;
 // Listen for frame updates
 app.ticker.add((ticker) => {
 
-  fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
-  positionText.text = `Pos: ${logo.x}, ${logo.y}`;
+  // fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
+  fpsText.text = `FPS: ${ticker.FPS.toFixed(2)}`;
+  positionText.text = `Position: ${logo.x.toFixed(2)}, ${logo.y.toFixed(2)}`;
 
   // Validate logo bounds
   if (logo.x < 50) {
@@ -185,8 +186,6 @@ app.ticker.add((ticker) => {
         logo.y -= 1.8 * ticker.deltaTime * speedMultiplier;
       }
     }
-
-    return;
   }
 
 
