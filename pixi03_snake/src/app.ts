@@ -17,20 +17,6 @@ await app.init({ background: '#102229', resizeTo: window });
 // can then insert into the DOM
 document.body.appendChild(app.canvas);
 
-// load the texture we need
-const texture = await Assets.load('SumWarsIcon_128x128.png');
-
-// This creates a texture from the image
-let logo = new Sprite(texture);
-
-// Setup the position of the bunny
-logo.x = app.renderer.width / 2;
-logo.y = app.renderer.height / 2;
-
-// Rotate around the center
-logo.anchor.x = 0.5;
-logo.anchor.y = 0.5;
-
 const terrainSheet: Spritesheet = await Assets.load('terrainspritesheet.json');
 
 // Store a dictionary of indices (1-5) to texture names (E.g. terrain_01.png)
@@ -61,8 +47,6 @@ for (let i = 0; i < gameMap.width; i++) {
     app.stage.addChild(gameSprite);
   }
 }
-
-app.stage.addChild(logo);
 
 await Assets.load('./GustysSerpentsFontL.xml');
 
@@ -101,7 +85,7 @@ positionText.y = 35;
 app.stage.addChild(positionText);
 
 const instructionsText = new Text({
-  text: 'Use the gamepad direction stick (or keyb. WASD) to move the logo. Press gamepad buttons 0, 1, 2, 3 to see messages',
+  text: 'Use the gamepad direction stick (or keyb. WASD) to move the snake',
   style,
 });
 instructionsText.x = 280;
@@ -139,48 +123,26 @@ app.ticker.add((ticker) => {
 
   // fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
   fpsText.text = `FPS: ${ticker.FPS.toFixed(2)}`;
-  positionText.text = `Position: ${logo.x.toFixed(2)}, ${logo.y.toFixed(2)}`;
-
-  // Validate logo bounds
-  if (logo.x < 50) {
-    logo.x = 50;
-  }
-  if (logo.x > 32 * 40 + 50) {
-    logo.x = 32 * 40 + 50;
-  }
-  if (logo.y < 50) {
-    logo.y = 50;
-  }
-  if (logo.y > 32 * 30 + 50) {
-    logo.y = 32 * 30 + 50;
-  }
-
-  // each frame we spin the logo around a bit
-  logo.rotation += 0.01 * ticker.deltaTime;
 
   if (keyboardController.keys.up.pressed) {
     messagesText.text = "Up pressed";
-    logo.y -= 1.8 * ticker.deltaTime * speedMultiplier;
     snake.pullUp();
     updateSnakeInStage(snake);
   }
 
   if (keyboardController.keys.down.pressed) {
     messagesText.text = "Down pressed";
-    logo.y += 1.8 * ticker.deltaTime * speedMultiplier;
     snake.pullDown();
     updateSnakeInStage(snake);
   }
   if (keyboardController.keys.left.pressed) {
     messagesText.text = "Left pressed";
-    logo.x -= 1.8 * ticker.deltaTime * speedMultiplier;
     snake.pullLeft();
     updateSnakeInStage(snake);
   }
 
   if (keyboardController.keys.right.pressed) {
     messagesText.text = "Right pressed";
-    logo.x += 1.8 * ticker.deltaTime * speedMultiplier;
     snake.pullRight();
     updateSnakeInStage(snake);
   }
@@ -204,25 +166,21 @@ app.ticker.add((ticker) => {
 
       if (gp.axes[0] > 0.5) {
         messagesText.text = "Right pressed";
-        logo.x += 1.8 * ticker.deltaTime * speedMultiplier;
         snake.pullRight();
         updateSnakeInStage(snake);
       }
       if (gp.axes[0] < -0.5) {
         messagesText.text = "Left pressed";
-        logo.x -= 1.8 * ticker.deltaTime * speedMultiplier;
         snake.pullLeft();
         updateSnakeInStage(snake);
       }
       if (gp.axes[1] > 0.5) {
         messagesText.text = "Down pressed";
-        logo.y += 1.8 * ticker.deltaTime * speedMultiplier;
         snake.pullDown();
         updateSnakeInStage(snake);
       }
       if (gp.axes[1] < -0.5) {
         messagesText.text = "Up pressed";
-        logo.y -= 1.8 * ticker.deltaTime * speedMultiplier;
         snake.pullUp();
         updateSnakeInStage(snake);
       }

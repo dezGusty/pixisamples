@@ -211,6 +211,4 @@ export class Snake {
       console.log(`Part ${i}: x=${this.body[i].x}, y=${this.body[i].y}, type=${this.body[i].type}, direction=${this.body[i].direction}`);
     }
   }
-
-
 }

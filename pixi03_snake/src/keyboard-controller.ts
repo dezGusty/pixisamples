@@ -7,14 +7,6 @@ export interface KeyState {
   timestamp: number;
 }
 
-// export interface KeyboardState {
-//   up: KeyState;
-//   left: KeyState;
-//   down: KeyState;
-//   right: KeyState;
-//   space: KeyState;
-// }
-
 // Class for handling keyboard inputs.
 export class KeyboardController {
 
