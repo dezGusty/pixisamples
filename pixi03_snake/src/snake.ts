@@ -24,7 +24,8 @@ export enum SnakeDirection {
   up = 0,
   left = 1,
   down = 2,
-  right = 3
+  right = 3,
+  none = 4
 }
 
 export class SnakeBodyPart {
@@ -46,6 +47,8 @@ export class Snake {
   public body: SnakeBodyPart[] = [];
 
   public direction: SnakeDirection = SnakeDirection.up;
+  public cachedDirection: SnakeDirection = SnakeDirection.up;
+  public nextDirection: SnakeDirection = SnakeDirection.up;
 
   constructor(private snakeSheet: Spritesheet, private snakeTextureNames: string[]) {
     console.log('Snake created');
