@@ -30,6 +30,26 @@ export class GamepadController {
         if (gp.axes[1] < -0.5 && direction === GamepadInput4x.AxisUp) {
           return true
         }
+        if (gp.buttons.length >= 15) {
+          if (gp.buttons[12].pressed && direction === GamepadInput4x.AxisUp) {
+            return true;
+          }
+          if (gp.buttons[13].pressed && direction === GamepadInput4x.AxisDown) {
+            return true;
+          }
+          if (gp.buttons[14].pressed && direction === GamepadInput4x.AxisLeft) {
+            return true;
+          }
+          if (gp.buttons[15].pressed && direction === GamepadInput4x.AxisRight) {
+            return true;
+          }
+        }
+        // for (let i = 0; i < gp.buttons.length; i++) {
+        //   if (gp.buttons[i].pressed) {
+        //     console.log(`Button ${i} pressed`);
+        //     return true;
+        //   }
+        // }
       }
     }
     return false;

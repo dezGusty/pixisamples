@@ -5,6 +5,7 @@ import { Snake } from './snake';
 import { Game } from './game';
 import { GamepadController } from './gamepad-controller';
 import { Maybe } from './maybe';
+import { Bonus } from './bonus';
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
@@ -39,6 +40,14 @@ const snakeTextureNames: string[] = [];
 for (let key in snakeSheet.textures) {
   snakeTextureNames.push(key);
 }
+
+const bonusSheet: Spritesheet = await Assets.load('bonusspritesheet.json');
+const bonusTextureNames: string[] = [];
+for (let key in bonusSheet.textures) {
+  bonusTextureNames.push(key);
+}
+
+let bonusSprites: Sprite[] = [];
 
 // Generate the terrain map (randomly)
 const maxTerrainCount = terrainTextureNames.length;
@@ -129,9 +138,10 @@ app.ticker.add((ticker) => {
 
   if (game.update(ticker.deltaMS)) {
     updateSnakeInStage(game.snake);
+    updateBonusesInStage(game.bonuses);
   }
 
-  gameSpeedText.text = `Speed: ${game.speed()}`;
+  gameSpeedText.text = `Speed: ${game.speed()}, Length: ${game.snake.body.length}`;
 });
 
 window.addEventListener("gamepadconnected", (e) => {
@@ -155,5 +165,29 @@ function updateSnakeInStage(snake: Snake) {
   const snakeSprites = snake.updateSprites();
   for (let i = 0; i < snakeSprites.length; i++) {
     app.stage.addChild(snakeSprites[i]);
+  }
+}
+
+function updateBonusesInStage(bonuses: Bonus[]) {
+
+  for (let i = 0; i < bonusSprites.length; i++) {
+    app.stage.removeChild(bonusSprites[i]);
+  }
+
+  bonusSprites = [];
+  for (let i = 0; i < bonuses.length; i++) {
+    const typeIndex = bonuses[i].type;
+    if (typeIndex < bonusTextureNames.length) {
+      let bonusSprite = new Sprite(bonusSheet.textures[bonusTextureNames[typeIndex]]);
+      bonusSprite.x = bonuses[i].x * 32;
+      bonusSprite.y = bonuses[i].y * 32;
+      bonusSprites.push(bonusSprite);
+    } else {
+      console.log(`Invalid bonus type index: ${typeIndex}`);
+    }
+  }
+
+  for (let i = 0; i < bonusSprites.length; i++) {
+    app.stage.addChild(bonusSprites[i]);
   }
 }

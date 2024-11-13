@@ -41,6 +41,7 @@ export class SnakeBodyPart {
   direction: SnakeDirection = SnakeDirection.up;
   type: SnakeBodyPartType = SnakeBodyPartType.head_up;
   sprite: Maybe<Sprite> = Maybe.None<Sprite>();
+  public spawned: boolean = false;
   constructor(x: number, y: number, type: SnakeBodyPartType) {
     this.x = x;
     this.y = y;
@@ -57,12 +58,17 @@ export class Snake {
   public cachedDirection: SnakeDirection = SnakeDirection.up;
   public nextDirection: SnakeDirection = SnakeDirection.up;
 
+  public score: number = 0;
+
   constructor(private snakeSheet: Spritesheet, private snakeTextureNames: string[]) {
     console.log('Snake created');
   }
 
   protected shiftSnakeBody() {
     for (let i = this.body.length - 1; i > 0; i--) {
+      // if (!this.body[i - 1].spawned) {
+      //   continue;
+      // }
       this.body[i].x = this.body[i - 1].x;
       this.body[i].y = this.body[i - 1].y;
       this.body[i].type = this.body[i - 1].type;
@@ -84,14 +90,6 @@ export class Snake {
   }
 
   public updateSprites(): Sprite[] {
-
-    for (let i = 0; i < this.body.length; i++) {
-      // if (this.body[i].sprite.hasData()) {
-      //   this.body[i].sprite.value().destroy({ texture: false });
-      // }
-      // this.body[i].sprite = Maybe.None<Sprite>();
-    }
-
     let sprites: Sprite[] = [];
     for (let i = 0; i < this.body.length; i++) {
       let snakeSprite = new Sprite(this.snakeSheet.textures[this.snakeTextureNames[this.body[i].type]]);
@@ -145,6 +143,14 @@ export class Snake {
     this.body[0].type = SnakeBodyPartType.head_up;
     this.body[0].direction = SnakeDirection.up;
     this.body[0].y -= 1;
+  }
+
+  public grow() {
+    // add an unspawned body part to the end of the snake
+    let last = this.body[this.body.length - 1];
+    let newPart = new SnakeBodyPart(last.x, last.y, last.type);
+    newPart.spawned = false;
+    this.body.push(newPart);
   }
 
   public pullDown() {
