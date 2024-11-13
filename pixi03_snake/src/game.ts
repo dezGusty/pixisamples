@@ -49,11 +49,11 @@ export class Game {
     this.snake.cachedDirection = SnakeDirection.none;
     this.snake.nextDirection = SnakeDirection.none;
 
-    this.snake.body.push({ x: 10, y: 10, type: SnakeBodyPartType.head_up, direction: SnakeDirection.up, spawned: true } as SnakeBodyPart);
-    this.snake.body.push({ x: 10, y: 11, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: true } as SnakeBodyPart);
-    this.snake.body.push({ x: 10, y: 12, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
-    this.snake.body.push({ x: 10, y: 13, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
-    this.snake.body.push({ x: 10, y: 14, type: SnakeBodyPartType.tail_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
+    this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.head_up, direction: SnakeDirection.up, spawned: true } as SnakeBodyPart);
+    this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
+    this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
+    this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
+    this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.tail_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
   }
 
   public moveSnake() {
