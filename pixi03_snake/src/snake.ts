@@ -76,18 +76,27 @@ export class Snake {
     let sprites: Sprite[] = [];
     for (let i = 0; i < this.body.length; i++) {
       if (this.body[i].sprite.hasData()) {
-        sprites.push(this.body[i].sprite.data as Sprite);
+        sprites.push(this.body[i].sprite.value());
       }
+      this.body[i].sprite = Maybe.None<Sprite>();
     }
     return sprites;
   }
 
   public updateSprites(): Sprite[] {
+
+    for (let i = 0; i < this.body.length; i++) {
+      // if (this.body[i].sprite.hasData()) {
+      //   this.body[i].sprite.value().destroy({ texture: false });
+      // }
+      // this.body[i].sprite = Maybe.None<Sprite>();
+    }
+
     let sprites: Sprite[] = [];
     for (let i = 0; i < this.body.length; i++) {
       let snakeSprite = new Sprite(this.snakeSheet.textures[this.snakeTextureNames[this.body[i].type]]);
-      snakeSprite.x = this.body[i].x * 32 + 50;
-      snakeSprite.y = this.body[i].y * 32 + 50;
+      snakeSprite.x = this.body[i].x * 32;
+      snakeSprite.y = this.body[i].y * 32;
       sprites.push(snakeSprite);
       this.body[i].sprite = Maybe.Some(snakeSprite);
     }

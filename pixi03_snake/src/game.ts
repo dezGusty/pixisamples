@@ -9,9 +9,15 @@ export class Game {
   public snake: Snake;
 
   private gameDelta: number = 0;
-  private maxDelta = 150;
+  private MAX_DELTA_MS = 250;
+  private MIN_DELTA_MS = 33;
+  private MAX_GAME_SPEED = 100;
+  private MIN_GAME_SPEED = 1;
+  private gameSpeed = 50;
+  public speed() { return this.gameSpeed; }
 
   private solidBorders = false;
+  private gamePaused = false;
 
   constructor(
     private gameMap: GameMap,
@@ -20,6 +26,7 @@ export class Game {
     private snakeSheet: Spritesheet,
     private snakeTextureNames: string[]) {
     this.snake = new Snake(this.snakeSheet, this.snakeTextureNames);
+    this.keyboardController.onKeyDown = (key: string) => { this.instantKeyHandler(key) };
   }
 
   public start() {
@@ -82,56 +89,122 @@ export class Game {
     }
   }
 
+  /**
+   * Cache the snake direction up.
+   */
+  private cacheSnakeDirectionUp() {
+    if (this.snake.cachedDirection === SnakeDirection.none) {
+      if (this.snake.direction !== SnakeDirection.down && this.snake.direction !== SnakeDirection.up) {
+        this.snake.cachedDirection = SnakeDirection.up;
+      }
+    } else {
+      this.snake.nextDirection = SnakeDirection.up;
+    }
+  }
+
+  private cacheSnakeDirectionDown() {
+    if (this.snake.cachedDirection === SnakeDirection.none) {
+      if (this.snake.direction !== SnakeDirection.up && this.snake.direction !== SnakeDirection.down) {
+        this.snake.cachedDirection = SnakeDirection.down;
+      }
+    } else {
+      this.snake.nextDirection = SnakeDirection.down;
+    }
+  }
+
+  private cacheSnakeDirectionLeft() {
+    if (this.snake.cachedDirection === SnakeDirection.none) {
+      if (this.snake.direction !== SnakeDirection.right && this.snake.direction !== SnakeDirection.left) {
+        this.snake.cachedDirection = SnakeDirection.left;
+      }
+    } else {
+      this.snake.nextDirection = SnakeDirection.left;
+    }
+  }
+
+  private cacheSnakeDirectionRight() {
+    if (this.snake.cachedDirection === SnakeDirection.none) {
+      if (this.snake.direction !== SnakeDirection.left && this.snake.direction !== SnakeDirection.right) {
+        this.snake.cachedDirection = SnakeDirection.right;
+      }
+    } else {
+      this.snake.nextDirection = SnakeDirection.right;
+    }
+  }
+
+  private instantKeyHandler(key: string) {
+    if (key === 'up') {
+      this.cacheSnakeDirectionUp();
+    } else if (key == 'down') {
+      this.cacheSnakeDirectionDown();
+    } else if (key == 'left') {
+      this.cacheSnakeDirectionLeft();
+    } else if (key == 'right') {
+      this.cacheSnakeDirectionRight();
+    } else if (key == 'space') {
+      this.gamePaused = !this.gamePaused;
+    }
+
+  }
+
+  private handleInput() {
+    // Keyboard controller actions.
+    if (//this.keyboardController.keys.up.pressed || 
+      this.gamepadController.isDirectionPressed(GamepadInput4x.AxisUp)) {
+      this.cacheSnakeDirectionUp();
+    }
+
+    if (//this.keyboardController.keys.down.pressed || 
+      this.gamepadController.isDirectionPressed(GamepadInput4x.AxisDown)) {
+      this.cacheSnakeDirectionDown();
+    }
+
+
+    if (//this.keyboardController.keys.left.pressed || 
+      this.gamepadController.isDirectionPressed(GamepadInput4x.AxisLeft)) {
+      this.cacheSnakeDirectionLeft();
+    }
+
+    if (//this.keyboardController.keys.right.pressed || 
+      this.gamepadController.isDirectionPressed(GamepadInput4x.AxisRight)) {
+      this.cacheSnakeDirectionRight();
+    }
+  }
+
   public update(delta: number): boolean {
     let somethingChanged = false;
+
+    if (this.gamePaused) {
+      return somethingChanged;
+    }
+
     if (!this.snake.alive) {
       return somethingChanged;
     }
 
-    // Keyboard controller actions.
-    if (this.keyboardController.keys.up.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisUp)) {
-      if (this.snake.cachedDirection !== SnakeDirection.none) {
-        if (this.snake.direction !== SnakeDirection.down && this.snake.direction !== SnakeDirection.up) {
-          this.snake.cachedDirection = SnakeDirection.up;
-        }
-      } else {
-        this.snake.nextDirection = SnakeDirection.up;
+    this.handleInput();
+
+    // Game speed control.
+    // Game speed grows linearly from MIN_GAME_SPEED to MAX_GAME_SPEED.
+    // This should result in a reduction of the delay between snake movements.
+    if (this.keyboardController.keys['speed-up'].pushed) {
+      this.keyboardController.popKeyState('speed-up');
+      if (this.gameSpeed < this.MAX_GAME_SPEED) {
+        this.gameSpeed = Math.min(this.gameSpeed + 5, this.MAX_GAME_SPEED);
+      }
+    }
+    if (this.keyboardController.keys['speed-down'].pushed) {
+      this.keyboardController.popKeyState('speed-down');
+      if (this.gameSpeed > this.MIN_GAME_SPEED) {
+        this.gameSpeed = Math.max(this.gameSpeed - 5, this.MIN_GAME_SPEED);
       }
     }
 
-    if (this.keyboardController.keys.down.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisDown)) {
-      if (this.snake.cachedDirection !== SnakeDirection.none) {
-        if (this.snake.direction !== SnakeDirection.up && this.snake.direction !== SnakeDirection.down) {
-          this.snake.cachedDirection = SnakeDirection.down;
-        }
-      } else {
-        this.snake.nextDirection = SnakeDirection.down;
-      }
-    }
-
-
-    if (this.keyboardController.keys.left.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisLeft)) {
-      if (this.snake.cachedDirection !== SnakeDirection.none) {
-        if (this.snake.direction !== SnakeDirection.right && this.snake.direction !== SnakeDirection.left) {
-          this.snake.cachedDirection = SnakeDirection.left;
-        }
-      } else {
-        this.snake.nextDirection = SnakeDirection.left;
-      }
-    }
-
-    if (this.keyboardController.keys.right.pressed || this.gamepadController.isDirectionPressed(GamepadInput4x.AxisRight)) {
-      if (this.snake.cachedDirection !== SnakeDirection.none) {
-        if (this.snake.direction !== SnakeDirection.left && this.snake.direction !== SnakeDirection.right) {
-          this.snake.cachedDirection = SnakeDirection.right;
-        }
-      } else {
-        this.snake.nextDirection = SnakeDirection.right;
-      }
-    }
+    const speedRatio = this.gameSpeed / (this.MAX_GAME_SPEED - this.MIN_GAME_SPEED);
+    const targetDelta = this.MAX_DELTA_MS - (this.MAX_DELTA_MS - this.MIN_DELTA_MS) * speedRatio;
 
     this.gameDelta += delta;
-    if (this.gameDelta >= this.maxDelta) {
+    if (this.gameDelta >= targetDelta) {
       if (this.snake.cachedDirection !== SnakeDirection.none
         && !areDirectionsOpposites(this.snake.direction, this.snake.cachedDirection)) {
         this.snake.direction = this.snake.cachedDirection;

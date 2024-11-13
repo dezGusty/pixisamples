@@ -1,9 +1,10 @@
 import { Application, Sprite, Assets, Text, TextStyle, BitmapText, Spritesheet } from 'pixi.js';
 import { GameMap } from './gamemap';
 import { KeyboardController } from './keyboard-controller';
-import { Snake, SnakeBodyPart, SnakeBodyPartType, SnakeDirection } from './snake';
+import { Snake } from './snake';
 import { Game } from './game';
 import { GamepadController } from './gamepad-controller';
+import { Maybe } from './maybe';
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
@@ -11,8 +12,13 @@ import { GamepadController } from './gamepad-controller';
 const app = new Application();
 
 
+const bodyElement: Maybe<HTMLElement> = new Maybe<HTMLElement>(document.querySelector('body'));
+
 // Wait for the Renderer to be available
-await app.init({ background: '#102229', resizeTo: window });
+await app.init({ background: '#102229', resizeTo: bodyElement.value() });
+
+console.log('App started, size: ' + app.screen.width + 'x' + app.screen.height);
+
 // const stats = new Stats(app.renderer);
 
 // The application will create a canvas element for you that you
@@ -37,14 +43,14 @@ for (let key in snakeSheet.textures) {
 // Generate the terrain map (randomly)
 const maxTerrainCount = terrainTextureNames.length;
 
-let gameMap: GameMap = new GameMap(40, 30);
+let gameMap: GameMap = new GameMap(28, 12);
 for (let i = 0; i < gameMap.width; i++) {
   for (let j = 0; j < gameMap.height; j++) {
     gameMap.tiles[i][j] = Math.floor(Math.random() * maxTerrainCount);
     let gameSprite = new Sprite(terrainSheet.textures[terrainTextureNames[gameMap.tiles[i][j]]]);
 
-    gameSprite.x = i * 32 + 50;
-    gameSprite.y = j * 32 + 50;
+    gameSprite.x = i * 32;
+    gameSprite.y = j * 32;
 
     app.stage.addChild(gameSprite);
   }
@@ -54,6 +60,15 @@ await Assets.load('./GustysSerpentsFontL.xml');
 
 const fpsText = new BitmapText({
   text: 'FPS: 0',
+  style: {
+    fontFamily: 'GustysSerpents',
+    fontSize: 18,
+    align: 'left',
+  },
+});
+
+const gameSpeedText = new BitmapText({
+  text: 'Speed: 1',
   style: {
     fontFamily: 'GustysSerpents',
     fontSize: 18,
@@ -72,6 +87,10 @@ const style = new TextStyle({
 fpsText.x = 10;
 fpsText.y = 10;
 app.stage.addChild(fpsText);
+
+gameSpeedText.x = 10;
+gameSpeedText.y = 35;
+app.stage.addChild(gameSpeedText);
 
 const instructionsText = new Text({
   text: 'Use the gamepad direction stick (or keyb. WASD) to move the snake',
@@ -105,12 +124,14 @@ app.ticker.maxFPS = 60;
 // Listen for frame updates
 app.ticker.add((ticker) => {
 
-  // fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
-  fpsText.text = `FPS: ${ticker.FPS.toFixed(2)}`;
+  fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
+  // fpsText.text = `FPS: ${ticker.FPS.toFixed(1)}, stage items: ${app.stage.children.length}`;
 
   if (game.update(ticker.deltaMS)) {
     updateSnakeInStage(game.snake);
   }
+
+  gameSpeedText.text = `Speed: ${game.speed()}`;
 });
 
 window.addEventListener("gamepadconnected", (e) => {

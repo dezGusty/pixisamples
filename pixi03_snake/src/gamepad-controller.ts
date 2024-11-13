@@ -1,4 +1,3 @@
-import { SnakeDirection } from "./snake";
 
 export enum GamepadInput4x {
   AxisUp,
