@@ -57,7 +57,6 @@ export class KeyboardController {
   }
 
   public keydownHandler(event: KeyboardEvent) {
-    console.log("[keyb-ctrl] keydown: " + event.code);
     const key = this.keyMap[event.code];
     if (!key) {
       return;
@@ -74,7 +73,6 @@ export class KeyboardController {
   }
 
   public keyupHandler(event: KeyboardEvent) {
-    console.log("[keyb-ctrl] keyup: " + event.code);
     const key = this.keyMap[event.code];
     if (!key) {
       return;
