@@ -9,6 +9,7 @@ import { Bonus } from './bonus';
 import { Obstacle } from './obstacle';
 import { Critter } from './critter';
 import { SnakeDirection } from './snake-direction';
+import { sound } from '@pixi/sound';
 
 enum GameState {
   InMenu,
@@ -169,7 +170,14 @@ if (currentGameState === GameState.InGame) {
   messagesText.text = "Game Over! Press ENTER to restart.";
 }
 
+// Add sounds
+console.log('Loading sounds...');
+const gameOverSound = await sound.add('game-over', 'game_over.ogg');
+const powerupSound = await sound.add('powerup', 'sfx_powerup.wav');
 
+console.log('Loaded sounds...');
+console.log(gameOverSound);
+console.log(powerupSound);
 
 app.ticker.maxFPS = 60;
 
@@ -189,6 +197,7 @@ app.ticker.add((ticker) => {
     if (!game.snake.alive) {
       currentGameState = GameState.PostGameGameOver;
       app.stage.addChild(gameOverText);
+      gameOverSound.play('game-over');
     }
   }
 

@@ -9,6 +9,7 @@ import { Bonus } from './bonus';
 import { Obstacle } from './obstacle';
 import { Critter } from './critter';
 import { SnakeDirection } from './snake-direction';
+import { sound } from '@pixi/sound';
 
 enum GameState {
   InMenu,
@@ -157,6 +158,19 @@ const keyboardController = new KeyboardController(KeyboardControllerMode.Manual)
 const gamepadController = new GamepadController();
 
 let game: Game = new Game(gameMap, keyboardController, gamepadController);
+game.onSnakeCollisionWithItself = () => {
+  sound.play('snake-dead');
+};
+game.onSnakeCollisionWithObstacle = () => {
+  sound.play('snake-dead');
+};
+game.onSnakePickupBonus = () => {
+  sound.play('eat-bonus');
+};
+game.onSnakePickupCritter = () => {
+  sound.play('eat-critter');
+};
+
 if (currentGameState === GameState.InGame) {
   startGame();
   const snakeSprites = updateSnakeSprites(game.snake);
@@ -169,7 +183,15 @@ if (currentGameState === GameState.InGame) {
   messagesText.text = "Game Over! Press ENTER to restart.";
 }
 
+// Add sounds
+console.log('Loading sounds...');
+await sound.add('game-over', 'game_over.ogg');
+await sound.add('eat-bonus', 'drop_004.ogg');
+await sound.add('start-game', 'ready.ogg');
+await sound.add('snake-dead', 'error_008.ogg');
+await sound.add('eat-critter', 'sfx_powerup.wav');
 
+console.log('Loaded sounds...');
 
 app.ticker.maxFPS = 60;
 
@@ -189,6 +211,7 @@ app.ticker.add((ticker) => {
     if (!game.snake.alive) {
       currentGameState = GameState.PostGameGameOver;
       app.stage.addChild(gameOverText);
+      sound.play('game-over');
     }
   }
 
@@ -232,6 +255,7 @@ document.addEventListener('keyup', (event) => {
 
 function startGame() {
   currentGameState = GameState.InGame;
+  sound.play('start-game');
   game.start();
 }
 

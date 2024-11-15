@@ -65,9 +65,9 @@ export class Game {
     // Reset the obstacles
     this.obstacles = [];
     // Initialize obstacles
-    this.obstacles.push(new Obstacle(4, 4, 0));
-    this.obstacles.push(new Obstacle(4, 11, 1));
-    this.obstacles.push(new Obstacle(22, 4, 2));
+    // this.obstacles.push(new Obstacle(4, 4, 0));
+    // this.obstacles.push(new Obstacle(4, 11, 1));
+    // this.obstacles.push(new Obstacle(22, 4, 2));
 
     // Reset the bonuses
     this.bonuses = [];
@@ -127,6 +127,7 @@ export class Game {
     for (let i = 1; i < this.snake.body.length; i++) {
       if (this.snake.body[0].x === this.snake.body[i].x && this.snake.body[0].y === this.snake.body[i].y) {
         this.snake.alive = false;
+        this.onSnakeCollisionWithItself();
         return;
       }
     }
@@ -135,10 +136,28 @@ export class Game {
     for (let i = 0; i < this.obstacles.length; i++) {
       if (this.snake.body[0].x === this.obstacles[i].x && this.snake.body[0].y === this.obstacles[i].y) {
         this.snake.alive = false;
+        this.onSnakeCollisionWithObstacle();
         return;
       }
     }
   }
+
+  onSnakeCollisionWithObstacle() {
+    console.log('Snake collided with an obstacle');
+  }
+
+  onSnakeCollisionWithItself() {
+    console.log('Snake collided with itself');
+  }
+
+  onSnakePickupBonus(bonus: Bonus) {
+    console.log(`Snake picked up a bonus of type ${bonus.type}`);
+  }
+
+  onSnakePickupCritter(critter: Critter) {
+    console.log('Snake picked up a critter');
+  }
+ 
 
   /**
    * Try to cache the direction to be used in the next update.
@@ -275,6 +294,7 @@ export class Game {
         this.bonuses[i].apply(this.snake);
         this.bonuses[i].picked = true;
         somethingChanged = true;
+        this.onSnakePickupBonus(this.bonuses[i]);
       }
     }
 
@@ -285,6 +305,7 @@ export class Game {
         this.snake.grow();
         this.critters.splice(i, 1);
         somethingChanged = true;
+        this.onSnakePickupCritter(this.critters[i]);
       }
     }
 
