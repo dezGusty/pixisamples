@@ -57,7 +57,7 @@ export class Snake {
   public snakeSpeed: number = 50;
   public score: number = 0;
 
-  constructor(private snakeSheet: Spritesheet, private snakeTextureNames: string[]) {
+  constructor() {
     console.log('Snake created');
   }
 
@@ -86,17 +86,17 @@ export class Snake {
   }
 
   // TODO: move this outside of the class
-  public updateSprites(): Sprite[] {
-    let sprites: Sprite[] = [];
-    for (let i = 0; i < this.body.length; i++) {
-      let snakeSprite = new Sprite(this.snakeSheet.textures[this.snakeTextureNames[this.body[i].type]]);
-      snakeSprite.x = this.body[i].x * 32;
-      snakeSprite.y = this.body[i].y * 32;
-      sprites.push(snakeSprite);
-      this.body[i].sprite = Maybe.Some(snakeSprite);
-    }
-    return sprites;
-  }
+  // public updateSprites(): Sprite[] {
+  //   let sprites: Sprite[] = [];
+  //   for (let i = 0; i < this.body.length; i++) {
+  //     let snakeSprite = new Sprite(this.snakeSheet.textures[this.snakeTextureNames[this.body[i].type]]);
+  //     snakeSprite.x = this.body[i].x * 32;
+  //     snakeSprite.y = this.body[i].y * 32;
+  //     sprites.push(snakeSprite);
+  //     this.body[i].sprite = Maybe.Some(snakeSprite);
+  //   }
+  //   return sprites;
+  // }
 
   protected updateTailBodyPart() {
     if (this.body.length <= 1) {

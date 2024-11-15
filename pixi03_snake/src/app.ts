@@ -1,6 +1,6 @@
 import { Application, Sprite, Assets, Text, TextStyle, BitmapText, Spritesheet, AnimatedSprite } from 'pixi.js';
 import { GameMap } from './gamemap';
-import { KeyboardController } from './keyboard-controller';
+import { KeyboardController, KeyboardControllerMode } from './keyboard-controller';
 import { Snake } from './snake';
 import { Game } from './game';
 import { GamepadController } from './gamepad-controller';
@@ -13,10 +13,10 @@ import { SnakeDirection } from './snake-direction';
 enum GameState {
   InMenu,
   InGame,
-  InGamePause
+  PostGameGameOver
 }
 
-let currentGameState: GameState = GameState.InGame;
+let currentGameState: GameState = GameState.InMenu;
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
@@ -117,6 +117,15 @@ const style = new TextStyle({
   stroke: { color: '#4a1850', width: 5, join: 'round' },
 });
 
+const gameOverText = new BitmapText({
+  text: 'Game Over!',
+  style: {
+    fontFamily: 'GustysSerpents',
+    fontSize: 72,
+    align: 'center',
+  },
+});
+
 fpsText.x = 10;
 fpsText.y = 10;
 app.stage.addChild(fpsText);
@@ -124,6 +133,9 @@ app.stage.addChild(fpsText);
 gameSpeedText.x = 10;
 gameSpeedText.y = 35;
 app.stage.addChild(gameSpeedText);
+
+gameOverText.x = 100;
+gameOverText.y = 200;
 
 const instructionsText = new Text({
   text: 'Press ENTER to start the game. Use the gamepad direction stick (or keyb. WASD) to move the snake',
@@ -141,18 +153,23 @@ messagesText.x = 10;
 messagesText.y = 60;
 app.stage.addChild(messagesText);
 
-const keyboardController = new KeyboardController();
+const keyboardController = new KeyboardController(KeyboardControllerMode.Manual);
 const gamepadController = new GamepadController();
 
-let game: Game = new Game(gameMap, keyboardController, gamepadController, snakeSheet, snakeTextureNames);
+let game: Game = new Game(gameMap, keyboardController, gamepadController);
 if (currentGameState === GameState.InGame) {
   startGame();
+  const snakeSprites = updateSnakeSprites(game.snake);
+  for (let i = 0; i < snakeSprites.length; i++) {
+    app.stage.addChild(snakeSprites[i]);
+  }
+} else if (currentGameState === GameState.InMenu) {
+  messagesText.text = "Press ENTER to start the game.";
+} else if (currentGameState === GameState.PostGameGameOver) {
+  messagesText.text = "Game Over! Press ENTER to restart.";
 }
 
-const snakeSprites = game.snake.updateSprites();
-for (let i = 0; i < snakeSprites.length; i++) {
-  app.stage.addChild(snakeSprites[i]);
-}
+
 
 app.ticker.maxFPS = 60;
 
@@ -170,7 +187,8 @@ app.ticker.add((ticker) => {
     }
 
     if (!game.snake.alive) {
-      currentGameState = GameState.InMenu;
+      currentGameState = GameState.PostGameGameOver;
+      app.stage.addChild(gameOverText);
     }
   }
 
@@ -190,14 +208,25 @@ window.addEventListener("gamepaddisconnected", (e) => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.code === 'Enter') {
-    if (currentGameState === GameState.InMenu) {
+  if (currentGameState === GameState.InGame) {
+    // handled inside the Game class
+    keyboardController.keydownHandler(event);
+  } else if (currentGameState === GameState.InMenu) {
+    if (event.code === 'Enter') {
       startGame();
-    } else if (currentGameState === GameState.InGame) {
-      currentGameState = GameState.InGamePause;
-    } else if (currentGameState === GameState.InGamePause) {
-      currentGameState = GameState.InGame;
     }
+  } else if (currentGameState === GameState.PostGameGameOver) {
+    // Any key => move to the menu
+    cleanupGame();
+    currentGameState = GameState.InMenu;
+
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (currentGameState === GameState.InGame) {
+    // handled inside the Game class
+    keyboardController.keyupHandler(event);
   }
 });
 
@@ -206,12 +235,51 @@ function startGame() {
   game.start();
 }
 
+function cleanupGame() {
+  // clean-up the stage
+  // clean-up for the snake
+  const sprites = game.snake.sprites();
+  for (let i = 0; i < sprites.length; i++) {
+    app.stage.removeChild(sprites[i]);
+  }
+
+  // clean-up for the bonuses
+  for (let i = 0; i < bonusSprites.length; i++) {
+    app.stage.removeChild(bonusSprites[i]);
+  }
+
+  // clean-up for the obstacles
+  for (let i = 0; i < obstaclesSprites.length; i++) {
+    app.stage.removeChild(obstaclesSprites[i]);
+  }
+
+  // clean-up for the critters
+  for (let i = 0; i < crittersSprites.length; i++) {
+    app.stage.removeChild(crittersSprites[i]);
+  }
+
+  app.stage.removeChild(gameOverText);
+
+}
+
+function updateSnakeSprites(snake: Snake): Sprite[] {
+  let sprites: Sprite[] = [];
+  for (let i = 0; i < snake.body.length; i++) {
+    let snakeSprite = new Sprite(snakeSheet.textures[snakeTextureNames[snake.body[i].type]]);
+    snakeSprite.x = snake.body[i].x * 32;
+    snakeSprite.y = snake.body[i].y * 32;
+    sprites.push(snakeSprite);
+    snake.body[i].sprite = Maybe.Some(snakeSprite);
+  }
+  return sprites;
+}
+
 function updateSnakeInStage(snake: Snake) {
   const oldSprites = snake.sprites();
   for (let i = 0; i < oldSprites.length; i++) {
     app.stage.removeChild(oldSprites[i]);
   }
-  const snakeSprites = snake.updateSprites();
+  const snakeSprites = updateSnakeSprites(snake);
   for (let i = 0; i < snakeSprites.length; i++) {
     app.stage.addChild(snakeSprites[i]);
   }
@@ -302,7 +370,7 @@ function updateCrittersInStage(critters: Critter[]) {
           textureName = "critter3_" + SnakeDirection.toString(critters[i].direction);
           break;
         default:  // No texture for other types
-        console.log(`Invalid critter type index: ${typeIndex}`);
+          console.log(`Invalid critter type index: ${typeIndex}`);
           break;
       }
 

@@ -8,6 +8,11 @@ export interface KeyState {
   pushed: boolean; // pressed and released
 }
 
+export enum KeyboardControllerMode {
+  Auto = 0,
+  Manual = 1,
+}
+
 // Class for handling keyboard inputs.
 export class KeyboardController {
 
@@ -35,12 +40,14 @@ export class KeyboardController {
     'NumpadSubtract': 'speed-down',
   };
 
-  public onKeyDown(_action: string) {}
+  public onKeyDown(_action: string) { }
 
-  constructor() {
-    // Register event listeners for akeydown and keyup events.
-    window.addEventListener('keydown', (event) => this.keydownHandler(event));
-    window.addEventListener('keyup', (event) => this.keyupHandler(event));
+  constructor(public startMode: KeyboardControllerMode = KeyboardControllerMode.Auto) {
+    if (startMode === KeyboardControllerMode.Auto) {
+      // Register event listeners for akeydown and keyup events.
+      window.addEventListener('keydown', (event) => this.keydownHandler(event));
+      window.addEventListener('keyup', (event) => this.keyupHandler(event));
+    }
   }
 
   public popKeyState(key: string): KeyState {
@@ -49,7 +56,8 @@ export class KeyboardController {
     return state;
   }
 
-  keydownHandler(event: KeyboardEvent) {
+  public keydownHandler(event: KeyboardEvent) {
+    console.log("[keyb-ctrl] keydown: " + event.code);
     const key = this.keyMap[event.code];
     if (!key) {
       return;
@@ -65,8 +73,8 @@ export class KeyboardController {
     this.keys[key].pressed = true;
   }
 
-  keyupHandler(event: KeyboardEvent) {
-    // console.log("keyup: " + event.code);
+  public keyupHandler(event: KeyboardEvent) {
+    console.log("[keyb-ctrl] keyup: " + event.code);
     const key = this.keyMap[event.code];
     if (!key) {
       return;

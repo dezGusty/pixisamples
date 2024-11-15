@@ -40,20 +40,16 @@ export class Game {
   constructor(
     private gameMap: GameMap,
     private keyboardController: KeyboardController,
-    private gamepadController: GamepadController,
-    private snakeSheet: Spritesheet,
-    private snakeTextureNames: string[]) {
-    this.snake = new Snake(this.snakeSheet, this.snakeTextureNames);
+    private gamepadController: GamepadController
+  ) {
+    this.snake = new Snake();
     this.snake.body.push({ x: 0, y: 0, type: SnakeBodyPartType.head_up, direction: SnakeDirection.up, spawned: true } as SnakeBodyPart);
-    this.keyboardController.onKeyDown = (key: string) => { this.instantKeyHandler(key) };
-
-    // Initialize critters
-    // this.initializeCritters();
+    this.keyboardController.onKeyDown = (key: string) => { this.onKeyDown(key) };
   }
 
   public start() {
     console.log('Game started');
-    this.snake = new Snake(this.snakeSheet, this.snakeTextureNames);
+    this.snake = new Snake();
     this.snake.alive = true;
     this.snake.direction = SnakeDirection.up;
     this.snake.cachedDirection = SnakeDirection.none;
@@ -163,8 +159,7 @@ export class Game {
     }
   }
 
-
-  private instantKeyHandler(key: string) {
+  public onKeyDown(key: string) {
     if (key === 'up') {
       this.tryToCacheDirection(SnakeDirection.up);
     } else if (key == 'down') {
