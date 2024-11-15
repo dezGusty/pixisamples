@@ -1,36 +1,41 @@
 import { Spritesheet } from "pixi.js";
-import { areDirectionsOpposites, Snake, SnakeBodyPart, SnakeBodyPartType, SnakeDirection } from "./snake";
+import { areDirectionsOpposites, Snake, SnakeBodyPart, SnakeBodyPartType } from "./snake";
 import { KeyboardController } from "./keyboard-controller";
 import { GameMap } from "./gamemap";
 import { GamepadController, GamepadInput4x } from "./gamepad-controller";
 import { Critter } from "./critter";
 import { Bonus } from "./bonus";
+import { Obstacle } from "./obstacle";
+import { SnakeDirection } from "./snake-direction";
 
 export class Game {
 
   public snake: Snake;
 
   private gameDelta: number = 0;
-  private MAX_DELTA_MS = 250;
+  private MAX_DELTA_MS = 500;
   private MIN_DELTA_MS = 33;
-  private MAX_GAME_SPEED = 100;
+  private MAX_GAME_SPEED = 200;
   private MIN_GAME_SPEED = 1;
 
   private MIN_BONUSES = 1;
   private MAX_BONUSES = 3;
 
-  private MIN_CRITTERS = 1;
-  private MAX_CRITTERS = 5;
+  private MIN_CRITTERS = 0;
+  private MAX_CRITTERS = 2;
 
-  private gameSpeed = 50;
-  public speed() { return this.gameSpeed; }
+  private CRITTER_CHANCE_TO_CHANGE_DIR = 0.2;
+  private CRITTER_CHANCE_TO_SPAWN = 0.15;
 
   private solidBorders = false;
   private gamePaused = false;
 
-  private critters: Critter[] = [];
+  public critters: Critter[] = [];
   public bonuses: Bonus[] = [];
   public bonusTypesCount = 4;
+
+  // Add a new property for obstacles
+  public obstacles: Obstacle[] = [];
 
   constructor(
     private gameMap: GameMap,
@@ -39,21 +44,50 @@ export class Game {
     private snakeSheet: Spritesheet,
     private snakeTextureNames: string[]) {
     this.snake = new Snake(this.snakeSheet, this.snakeTextureNames);
+    this.snake.body.push({ x: 0, y: 0, type: SnakeBodyPartType.head_up, direction: SnakeDirection.up, spawned: true } as SnakeBodyPart);
     this.keyboardController.onKeyDown = (key: string) => { this.instantKeyHandler(key) };
+
+    // Initialize critters
+    // this.initializeCritters();
   }
 
   public start() {
+    console.log('Game started');
     this.snake = new Snake(this.snakeSheet, this.snakeTextureNames);
     this.snake.alive = true;
     this.snake.direction = SnakeDirection.up;
     this.snake.cachedDirection = SnakeDirection.none;
     this.snake.nextDirection = SnakeDirection.none;
+    this.snake.snakeSpeed = (this.MAX_GAME_SPEED - this.MIN_GAME_SPEED) * 0.7 + this.MIN_GAME_SPEED;
 
     this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.head_up, direction: SnakeDirection.up, spawned: true } as SnakeBodyPart);
     this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
     this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
     this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.body_straight_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
     this.snake.body.push({ x: 10, y: 8, type: SnakeBodyPartType.tail_up, direction: SnakeDirection.up, spawned: false } as SnakeBodyPart);
+
+    // Reset the obstacles
+    this.obstacles = [];
+    // Initialize obstacles
+    this.obstacles.push(new Obstacle(4, 4, 0));
+    this.obstacles.push(new Obstacle(4, 11, 1));
+    this.obstacles.push(new Obstacle(22, 4, 2));
+
+    // Reset the bonuses
+    this.bonuses = [];
+
+    // Initialize critters
+    this.initializeCritters();
+  }
+
+  private initializeCritters() {
+    for (let i = 0; i < this.MIN_CRITTERS; i++) {
+      const x = Math.floor(Math.random() * this.gameMap.width);
+      const y = Math.floor(Math.random() * this.gameMap.height);
+      const speed = Math.random() * 2 + 1; // Random speed between 1 and 3
+      const direction = Math.floor(Math.random() * 4); // Random initial direction
+      this.critters.push(new Critter(x, y, speed, direction));
+    }
   }
 
   public moveSnake() {
@@ -100,87 +134,72 @@ export class Game {
         return;
       }
     }
+
+    // Check for collision with obstacles
+    for (let i = 0; i < this.obstacles.length; i++) {
+      if (this.snake.body[0].x === this.obstacles[i].x && this.snake.body[0].y === this.obstacles[i].y) {
+        this.snake.alive = false;
+        return;
+      }
+    }
   }
 
   /**
-   * Cache the snake direction up.
+   * Try to cache the direction to be used in the next update.
+   * @param direction Direction to cache.
    */
-  private cacheSnakeDirectionUp() {
+  private tryToCacheDirection(direction: SnakeDirection) {
     if (this.snake.cachedDirection === SnakeDirection.none) {
-      if (this.snake.direction !== SnakeDirection.down && this.snake.direction !== SnakeDirection.up) {
-        this.snake.cachedDirection = SnakeDirection.up;
+      // nothing cached, store the new direction, but only valid
+      // cannot go in the opposite direction and cannot cache the same direction
+      if (this.snake.direction !== SnakeDirection.opposite(direction)
+        && this.snake.direction !== direction) {
+        this.snake.cachedDirection = direction;
       }
     } else {
-      this.snake.nextDirection = SnakeDirection.up;
+      // a direction is already cached, store a new direction to enable the user to
+      // quickly queue the next direction
+      this.snake.nextDirection = direction;
     }
   }
 
-  private cacheSnakeDirectionDown() {
-    if (this.snake.cachedDirection === SnakeDirection.none) {
-      if (this.snake.direction !== SnakeDirection.up && this.snake.direction !== SnakeDirection.down) {
-        this.snake.cachedDirection = SnakeDirection.down;
-      }
-    } else {
-      this.snake.nextDirection = SnakeDirection.down;
-    }
-  }
-
-  private cacheSnakeDirectionLeft() {
-    if (this.snake.cachedDirection === SnakeDirection.none) {
-      if (this.snake.direction !== SnakeDirection.right && this.snake.direction !== SnakeDirection.left) {
-        this.snake.cachedDirection = SnakeDirection.left;
-      }
-    } else {
-      this.snake.nextDirection = SnakeDirection.left;
-    }
-  }
-
-  private cacheSnakeDirectionRight() {
-    if (this.snake.cachedDirection === SnakeDirection.none) {
-      if (this.snake.direction !== SnakeDirection.left && this.snake.direction !== SnakeDirection.right) {
-        this.snake.cachedDirection = SnakeDirection.right;
-      }
-    } else {
-      this.snake.nextDirection = SnakeDirection.right;
-    }
-  }
 
   private instantKeyHandler(key: string) {
     if (key === 'up') {
-      this.cacheSnakeDirectionUp();
+      this.tryToCacheDirection(SnakeDirection.up);
     } else if (key == 'down') {
-      this.cacheSnakeDirectionDown();
+      this.tryToCacheDirection(SnakeDirection.down);
     } else if (key == 'left') {
-      this.cacheSnakeDirectionLeft();
+      this.tryToCacheDirection(SnakeDirection.left);
     } else if (key == 'right') {
-      this.cacheSnakeDirectionRight();
+      this.tryToCacheDirection(SnakeDirection.right);
     } else if (key == 'space') {
       this.gamePaused = !this.gamePaused;
+      console.log(`Game paused: ${this.gamePaused}`);
     }
-
   }
 
   private handleInput() {
     // Keyboard controller actions.
     if (//this.keyboardController.keys.up.pressed || 
       this.gamepadController.isDirectionPressed(GamepadInput4x.AxisUp)) {
-      this.cacheSnakeDirectionUp();
+      this.tryToCacheDirection(SnakeDirection.up);
     }
 
     if (//this.keyboardController.keys.down.pressed || 
       this.gamepadController.isDirectionPressed(GamepadInput4x.AxisDown)) {
-      this.cacheSnakeDirectionDown();
+      this.tryToCacheDirection(SnakeDirection.down);
     }
 
 
     if (//this.keyboardController.keys.left.pressed || 
       this.gamepadController.isDirectionPressed(GamepadInput4x.AxisLeft)) {
-      this.cacheSnakeDirectionLeft();
+      this.tryToCacheDirection(SnakeDirection.left);
     }
 
     if (//this.keyboardController.keys.right.pressed || 
       this.gamepadController.isDirectionPressed(GamepadInput4x.AxisRight)) {
-      this.cacheSnakeDirectionRight();
+      this.tryToCacheDirection(SnakeDirection.right);
     }
   }
 
@@ -198,22 +217,20 @@ export class Game {
     this.handleInput();
 
     // Game speed control.
-    // Game speed grows linearly from MIN_GAME_SPEED to MAX_GAME_SPEED.
-    // This should result in a reduction of the delay between snake movements.
     if (this.keyboardController.keys['speed-up'].pushed) {
       this.keyboardController.popKeyState('speed-up');
-      if (this.gameSpeed < this.MAX_GAME_SPEED) {
-        this.gameSpeed = Math.min(this.gameSpeed + 5, this.MAX_GAME_SPEED);
+      if (this.snake.snakeSpeed < this.MAX_GAME_SPEED) {
+        this.snake.snakeSpeed = Math.min(this.snake.snakeSpeed + 5, this.MAX_GAME_SPEED);
       }
     }
     if (this.keyboardController.keys['speed-down'].pushed) {
       this.keyboardController.popKeyState('speed-down');
-      if (this.gameSpeed > this.MIN_GAME_SPEED) {
-        this.gameSpeed = Math.max(this.gameSpeed - 5, this.MIN_GAME_SPEED);
+      if (this.snake.snakeSpeed > this.MIN_GAME_SPEED) {
+        this.snake.snakeSpeed = Math.max(this.snake.snakeSpeed - 5, this.MIN_GAME_SPEED);
       }
     }
 
-    const speedRatio = this.gameSpeed / (this.MAX_GAME_SPEED - this.MIN_GAME_SPEED);
+    const speedRatio = this.snake.snakeSpeed / (this.MAX_GAME_SPEED - this.MIN_GAME_SPEED);
     const targetSnakeDelta = this.MAX_DELTA_MS - (this.MAX_DELTA_MS - this.MIN_DELTA_MS) * speedRatio;
 
     this.gameDelta += delta;
@@ -230,11 +247,30 @@ export class Game {
       this.moveSnake();
       this.checkCollision();
 
-      // Move the critters
-      for (let i = 0; i < this.critters.length; i++) {
-        // this.critters[i].move();
-      }
+      somethingChanged = true;
+    }
 
+    // Move critters
+    somethingChanged = this.moveCritters(delta) || somethingChanged;
+
+    // Ensure at least MIN_CRITTERS critters are present
+    if (this.critters.length < this.MIN_CRITTERS) {
+      const x = Math.floor(Math.random() * this.gameMap.width);
+      const y = Math.floor(Math.random() * this.gameMap.height);
+      const speed = Math.random() * 2 + 1; // Random speed between 1 and 3
+      const direction = Math.floor(Math.random() * 4); // Random initial direction
+      this.critters.push(new Critter(x, y, speed, direction));
+      somethingChanged = true;
+    }
+
+    // Spawn additional critters with a 15% chance per second if less than MAX_CRITTERS
+    if (this.critters.length < this.MAX_CRITTERS
+      && Math.random() < this.CRITTER_CHANCE_TO_SPAWN * (delta / 1000)) {
+      const x = Math.floor(Math.random() * this.gameMap.width);
+      const y = Math.floor(Math.random() * this.gameMap.height);
+      const speed = Math.random() * 2 + 1; // Random speed between 1 and 3
+      const direction = Math.floor(Math.random() * 4); // Random initial direction
+      this.critters.push(new Critter(x, y, speed, direction));
       somethingChanged = true;
     }
 
@@ -242,25 +278,45 @@ export class Game {
     for (let i = 0; i < this.bonuses.length; i++) {
       if (this.snake.body[0].x === this.bonuses[i].x && this.snake.body[0].y === this.bonuses[i].y) {
         this.bonuses[i].apply(this.snake);
-        this.bonuses[i].remainingLifetime = 0;
+        this.bonuses[i].picked = true;
         somethingChanged = true;
       }
     }
 
+    // Check if the snake has eaten a critter
+    for (let i = 0; i < this.critters.length; i++) {
+      if (this.snake.body[0].x === this.critters[i].x && this.snake.body[0].y === this.critters[i].y) {
+        // TODO: check how to apply the critter effect to the snake
+        this.snake.grow();
+        this.critters.splice(i, 1);
+        somethingChanged = true;
+      }
+    }
+
+
     // Update the bonuses
     for (let i = 0; i < this.bonuses.length; i++) {
-      this.bonuses[i].update(delta);
+      somethingChanged = somethingChanged || this.bonuses[i].update(delta);
     }
 
-    if (this.bonuses.filter(bonus => bonus.remainingLifetime <= 0).length  > 0) {
-      somethingChanged = true;
+    // Handle expired bonuses and spawn obstacles
+    for (let i = 0; i < this.bonuses.length; i++) {
+      if (this.bonuses[i].remainingLifetime <= 0) {
+        // 20% chance to spawn an obstacle
+        if (Math.random() < Bonus.CHANCE_TO_TRANSFORM_TO_OBSTACLE) {
+          this.obstacles.push(new Obstacle(this.bonuses[i].x, this.bonuses[i].y, 1));
+        }
+        somethingChanged = true;
+      }
     }
 
-    this.bonuses = this.bonuses.filter(bonus => bonus.remainingLifetime > 0);
+    // Keep only the bonuses that are still active
+    this.bonuses = this.bonuses.filter(
+      bonus => bonus.remainingLifetime > 0 && bonus.picked === false);
 
+    let needMoreBonuses = false;
     // Check if new bonuses need to be added.
     if (this.bonuses.length < this.MAX_BONUSES) {
-      let needMoreBonuses = false;
       if (this.bonuses.length < this.MIN_BONUSES) {
         // Guarantee that there is at least one bonus.
         needMoreBonuses = true;
@@ -268,20 +324,73 @@ export class Game {
         // 1 in 10 chance of adding a new bonus.
         needMoreBonuses = Math.random() < 0.1;
       }
-
-      if (needMoreBonuses) {
-        this.gameMap.clearCollisionMap();
-        this.gameMap.addSnakeToCollisionMap(this.snake);
-        this.gameMap.addBonusesToCollisionMap(this.bonuses);
-
-        let emptySpot = this.gameMap.findEmptySpotInCollisionMap();
-        const bonusType = Math.floor(Math.random() * this.bonusTypesCount);
-        this.bonuses.push(new Bonus(emptySpot.x, emptySpot.y, 10000, bonusType));
-        somethingChanged = true;
-      }
     }
+
+    if (needMoreBonuses) {
+      this.gameMap.clearCollisionMap();
+      this.gameMap.addSnakeToCollisionMap(this.snake);
+      this.gameMap.addBonusesToCollisionMap(this.bonuses);
+      this.gameMap.addObstaclesToCollisionMap(this.obstacles);
+      this.gameMap.addCrittersToCollisionMap(this.critters);
+
+      let emptySpot = this.gameMap.findEmptySpotInCollisionMap();
+      const bonusType = Math.floor(Math.random() * this.bonusTypesCount);
+      this.bonuses.push(new Bonus(emptySpot.x, emptySpot.y, 10000, bonusType));
+      somethingChanged = true;
+    }
+
 
     return somethingChanged;
   }
 
+  private tryToMoveCritter(critter: Critter) {
+
+    // Randomly change direction
+    if (Math.random() < this.CRITTER_CHANCE_TO_CHANGE_DIR) {
+      critter.direction = Math.floor(Math.random() * 4);
+    }
+
+    // Get the map coordinates for the cell in which the critter should move
+    let targetCell = this.gameMap.tryToGetCellInDirection(critter.x, critter.y, critter.direction, !this.solidBorders);
+    if (this.gameMap.collisionMap[targetCell.x][targetCell.y] === 0) {
+      // cell is available to move into.
+      critter.x = targetCell.x;
+      critter.y = targetCell.y;
+    }
+  }
+
+  private moveCritters(delta: number): boolean {
+    let somethingChanged = false;
+    for (let critter of this.critters) {
+
+      // Game speed control.
+      if (critter.speed > this.MAX_GAME_SPEED) {
+        critter.speed = this.MAX_GAME_SPEED;
+      }
+      if (critter.speed < this.MIN_GAME_SPEED) {
+        critter.speed = this.MIN_GAME_SPEED;
+      }
+
+      const speedRatio = critter.speed / (this.MAX_GAME_SPEED - this.MIN_GAME_SPEED);
+      const targetCritterDelta = this.MAX_DELTA_MS - (this.MAX_DELTA_MS - this.MIN_DELTA_MS) * speedRatio;
+
+      critter.delta += delta;
+
+      if (critter.delta >= targetCritterDelta) {
+
+        // TODO: optimize
+        this.gameMap.clearCollisionMap();
+        this.gameMap.addSnakeToCollisionMap(this.snake);
+        this.gameMap.addBonusesToCollisionMap(this.bonuses);
+        this.gameMap.addObstaclesToCollisionMap(this.obstacles);
+        this.gameMap.addCrittersToCollisionMap(this.critters);
+
+        this.tryToMoveCritter(critter);
+
+        critter.delta -= targetCritterDelta;
+        somethingChanged = true;
+      }
+    }
+    return somethingChanged;
+  }
 }

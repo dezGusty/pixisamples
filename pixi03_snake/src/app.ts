@@ -1,4 +1,4 @@
-import { Application, Sprite, Assets, Text, TextStyle, BitmapText, Spritesheet } from 'pixi.js';
+import { Application, Sprite, Assets, Text, TextStyle, BitmapText, Spritesheet, AnimatedSprite } from 'pixi.js';
 import { GameMap } from './gamemap';
 import { KeyboardController } from './keyboard-controller';
 import { Snake } from './snake';
@@ -6,6 +6,17 @@ import { Game } from './game';
 import { GamepadController } from './gamepad-controller';
 import { Maybe } from './maybe';
 import { Bonus } from './bonus';
+import { Obstacle } from './obstacle';
+import { Critter } from './critter';
+import { SnakeDirection } from './snake-direction';
+
+enum GameState {
+  InMenu,
+  InGame,
+  InGamePause
+}
+
+let currentGameState: GameState = GameState.InGame;
 
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
@@ -46,8 +57,21 @@ const bonusTextureNames: string[] = [];
 for (let key in bonusSheet.textures) {
   bonusTextureNames.push(key);
 }
-
 let bonusSprites: Sprite[] = [];
+
+const crittersSheet: Spritesheet = await Assets.load('crittersspritesheet.json');
+const crittersTextureNames: string[] = [];
+for (let key in crittersSheet.textures) {
+  crittersTextureNames.push(key);
+}
+let crittersSprites: Sprite[] = [];
+
+const obstaclesSheet: Spritesheet = await Assets.load('obstaclesspritesheet.json');
+const obstaclesTextureNames: string[] = [];
+for (let key in obstaclesSheet.textures) {
+  obstaclesTextureNames.push(key);
+}
+let obstaclesSprites: Sprite[] = [];
 
 // Generate the terrain map (randomly)
 const maxTerrainCount = terrainTextureNames.length;
@@ -102,7 +126,7 @@ gameSpeedText.y = 35;
 app.stage.addChild(gameSpeedText);
 
 const instructionsText = new Text({
-  text: 'Use the gamepad direction stick (or keyb. WASD) to move the snake',
+  text: 'Press ENTER to start the game. Use the gamepad direction stick (or keyb. WASD) to move the snake',
   style,
 });
 instructionsText.x = 280;
@@ -121,7 +145,9 @@ const keyboardController = new KeyboardController();
 const gamepadController = new GamepadController();
 
 let game: Game = new Game(gameMap, keyboardController, gamepadController, snakeSheet, snakeTextureNames);
-game.start();
+if (currentGameState === GameState.InGame) {
+  startGame();
+}
 
 const snakeSprites = game.snake.updateSprites();
 for (let i = 0; i < snakeSprites.length; i++) {
@@ -134,14 +160,21 @@ app.ticker.maxFPS = 60;
 app.ticker.add((ticker) => {
 
   fpsText.text = `FPS: ${Math.round(ticker.FPS)}`;
-  // fpsText.text = `FPS: ${ticker.FPS.toFixed(1)}, stage items: ${app.stage.children.length}`;
 
-  if (game.update(ticker.deltaMS)) {
-    updateSnakeInStage(game.snake);
-    updateBonusesInStage(game.bonuses);
+  if (currentGameState === GameState.InGame) {
+    if (game.update(ticker.deltaMS)) {
+      updateSnakeInStage(game.snake);
+      updateBonusesInStage(game.bonuses);
+      updateObstaclesInStage(game.obstacles);
+      updateCrittersInStage(game.critters);
+    }
+
+    if (!game.snake.alive) {
+      currentGameState = GameState.InMenu;
+    }
   }
 
-  gameSpeedText.text = `Speed: ${game.speed()}, Length: ${game.snake.body.length}`;
+  gameSpeedText.text = `Speed: ${game.snake.speed().toFixed(1)}, Length: ${game.snake.body.length}`;
 });
 
 window.addEventListener("gamepadconnected", (e) => {
@@ -156,6 +189,22 @@ window.addEventListener("gamepaddisconnected", (e) => {
   messagesText.text = message;
 });
 
+document.addEventListener('keydown', (event) => {
+  if (event.code === 'Enter') {
+    if (currentGameState === GameState.InMenu) {
+      startGame();
+    } else if (currentGameState === GameState.InGame) {
+      currentGameState = GameState.InGamePause;
+    } else if (currentGameState === GameState.InGamePause) {
+      currentGameState = GameState.InGame;
+    }
+  }
+});
+
+function startGame() {
+  currentGameState = GameState.InGame;
+  game.start();
+}
 
 function updateSnakeInStage(snake: Snake) {
   const oldSprites = snake.sprites();
@@ -169,7 +218,6 @@ function updateSnakeInStage(snake: Snake) {
 }
 
 function updateBonusesInStage(bonuses: Bonus[]) {
-
   for (let i = 0; i < bonusSprites.length; i++) {
     app.stage.removeChild(bonusSprites[i]);
   }
@@ -178,7 +226,23 @@ function updateBonusesInStage(bonuses: Bonus[]) {
   for (let i = 0; i < bonuses.length; i++) {
     const typeIndex = bonuses[i].type;
     if (typeIndex < bonusTextureNames.length) {
-      let bonusSprite = new Sprite(bonusSheet.textures[bonusTextureNames[typeIndex]]);
+      let bonusSprite;
+      if (bonuses[i].remainingLifetime < Bonus.WARNING_DURATION) {
+        // Use AnimatedSprite if remaining lifetime is less than 2 seconds
+        const textureName = "anim_" + bonusTextureNames[typeIndex];
+        const textures = bonusSheet.animations[textureName];
+        if (textures) {
+          bonusSprite = new AnimatedSprite(textures);
+          bonusSprite.animationSpeed = 2.0; // Adjust the animation speed as needed
+          bonusSprite.play();
+        } else {
+          console.log(`No animation found for texture: ${textureName}`);
+          bonusSprite = new Sprite(bonusSheet.textures[textureName]);
+        }
+      } else {
+        // Use regular Sprite if remaining lifetime is 2 seconds or more
+        bonusSprite = new Sprite(bonusSheet.textures[bonusTextureNames[typeIndex]]);
+      }
       bonusSprite.x = bonuses[i].x * 32;
       bonusSprite.y = bonuses[i].y * 32;
       bonusSprites.push(bonusSprite);
@@ -189,5 +253,71 @@ function updateBonusesInStage(bonuses: Bonus[]) {
 
   for (let i = 0; i < bonusSprites.length; i++) {
     app.stage.addChild(bonusSprites[i]);
+  }
+}
+
+function updateObstaclesInStage(obstacles: Obstacle[]) {
+
+  for (let i = 0; i < obstaclesSprites.length; i++) {
+    app.stage.removeChild(obstaclesSprites[i]);
+  }
+
+  obstaclesSprites = [];
+  for (let i = 0; i < obstacles.length; i++) {
+    const typeIndex = obstacles[i].type;
+    if (typeIndex < obstaclesTextureNames.length) {
+      let obstacleSprite = new Sprite(obstaclesSheet.textures[obstaclesTextureNames[typeIndex]]);
+      obstacleSprite.x = obstacles[i].x * 32;
+      obstacleSprite.y = obstacles[i].y * 32;
+      obstaclesSprites.push(obstacleSprite);
+    } else {
+      console.log(`Invalid obstacle type index: ${typeIndex}`);
+    }
+  }
+
+  for (let i = 0; i < obstaclesSprites.length; i++) {
+    app.stage.addChild(obstaclesSprites[i]);
+  }
+}
+
+function updateCrittersInStage(critters: Critter[]) {
+  for (let i = 0; i < crittersSprites.length; i++) {
+    app.stage.removeChild(crittersSprites[i]);
+  }
+
+  crittersSprites = [];
+  for (let i = 0; i < critters.length; i++) {
+    const typeIndex = critters[i].type;
+    if (typeIndex < crittersTextureNames.length) {
+      // Get the base name of the texture based on the type
+      let textureName = "";
+      switch (typeIndex) {
+        case 0:
+          textureName = "critter1_" + SnakeDirection.toString(critters[i].direction);
+          break;
+        case 1:
+          textureName = "critter2_" + SnakeDirection.toString(critters[i].direction);
+          break;
+        case 2:
+          textureName = "critter3_" + SnakeDirection.toString(critters[i].direction);
+          break;
+        default:  // No texture for other types
+        console.log(`Invalid critter type index: ${typeIndex}`);
+          break;
+      }
+
+      if (textureName.length > 0) {
+        let critterSprite = new Sprite(crittersSheet.textures[textureName]);
+        critterSprite.x = critters[i].x * 32;
+        critterSprite.y = critters[i].y * 32;
+        crittersSprites.push(critterSprite);
+      }
+    } else {
+      console.log(`Invalid critter type index: ${typeIndex}`);
+    }
+  }
+
+  for (let i = 0; i < crittersSprites.length; i++) {
+    app.stage.addChild(crittersSprites[i]);
   }
 }

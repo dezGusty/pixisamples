@@ -44,12 +44,6 @@ export class GamepadController {
             return true;
           }
         }
-        // for (let i = 0; i < gp.buttons.length; i++) {
-        //   if (gp.buttons[i].pressed) {
-        //     console.log(`Button ${i} pressed`);
-        //     return true;
-        //   }
-        // }
       }
     }
     return false;

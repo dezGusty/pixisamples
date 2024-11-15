@@ -6,6 +6,9 @@ export class Bonus {
   remainingLifetime: number = 0;
 
   type: number = 0;
+  static readonly WARNING_DURATION = 3000;
+  static readonly CHANCE_TO_TRANSFORM_TO_OBSTACLE = 0.2;
+  public picked: boolean = false;
 
   constructor(x: number, y: number, lifetime: number, type: number) {
     this.x = x;
@@ -14,8 +17,22 @@ export class Bonus {
     this.type = type;
   }
 
-  public update(delta: number) {
+  public update(delta: number): boolean {
     this.remainingLifetime -= delta;
+    if (this.remainingLifetime < 0) {
+      return true;
+    }
+
+    if (this.remainingLifetime < Bonus.WARNING_DURATION && this.remainingLifetime + delta >= Bonus.WARNING_DURATION) {
+      console.log(`Bonus of type ${this.type} is about to expire`);
+      return true;
+    }
+
+    if (this.picked) {
+      return true;
+    }
+
+    return false;
   }
 
   public apply(snake: Snake) {
