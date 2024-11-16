@@ -171,13 +171,14 @@ game.onSnakePickupCritter = () => {
   sound.play('eat-critter');
 };
 
-if (currentGameState === GameState.InGame) {
-  startGame();
-  const snakeSprites = updateSnakeSprites(game.snake);
-  for (let i = 0; i < snakeSprites.length; i++) {
-    app.stage.addChild(snakeSprites[i]);
-  }
-} else if (currentGameState === GameState.InMenu) {
+// if (GameState.InGame === currentGameState) {
+//   startGame();
+//   const snakeSprites = updateSnakeSprites(game.snake);
+//   for (let i = 0; i < snakeSprites.length; i++) {
+//     app.stage.addChild(snakeSprites[i]);
+//   }
+// } else 
+if (currentGameState === GameState.InMenu) {
   messagesText.text = "Press ENTER to start the game.";
 } else if (currentGameState === GameState.PostGameGameOver) {
   messagesText.text = "Game Over! Press ENTER to restart.";

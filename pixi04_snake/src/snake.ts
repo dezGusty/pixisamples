@@ -1,4 +1,4 @@
-import { Sprite, Spritesheet } from "pixi.js";
+import { Sprite } from "pixi.js";
 import { Maybe } from "./maybe";
 import { SnakeDirection } from "./snake-direction";
 

@@ -1,4 +1,3 @@
-import { Spritesheet } from "pixi.js";
 import { areDirectionsOpposites, Snake, SnakeBodyPart, SnakeBodyPartType } from "./snake";
 import { KeyboardController } from "./keyboard-controller";
 import { GameMap } from "./gamemap";
@@ -155,7 +154,7 @@ export class Game {
   }
 
   onSnakePickupCritter(critter: Critter) {
-    console.log('Snake picked up a critter');
+    console.log(`Snake picked up a critter of type ${critter.type}`);
   }
  
 
